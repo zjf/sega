@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdarg.h>
 
+#define UNUSED(x) (void)(x)
 void suicidef(const char* format, ...);
 FILE* fopen_or_die(const char* name,  const char*  mode);
 

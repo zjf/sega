@@ -1,5 +1,5 @@
 CC = gcc -g
-CFLAGS = -Wall
+CFLAGS = -O2 -Wall
 
 sega: main.o train.o seq2qu.o util.o
 	$(CC) $(CFLAGS) -o ../bin/sega main.o train.o seq2qu.o util.o -lm -lz
