@@ -49,7 +49,7 @@ int seq2qu(int argc, char* argv[])
       case 'H': qu = (rand() % 3) == 0 ? 1 : ((rand() % 2) == 0 ? 0 : 3); break;
       case 'V': qu = (rand() % 3) == 0 ? 1 : ((rand() % 2) == 0 ? 2 : 1); break;
       case 'N': qu = (rand() % 4) == 0 ? 0 : ((rand() % 3) == 0 ? 1 : (rand() % 2) == 0 ? 2 : 3); break;
-      default: suicidef("I cant recognize: %c\n", seq->seq.s[i]); break;
+      default: qu = 4; suicidef("I cant recognize: %c\n", seq->seq.s[i]); break;
       }
       
       fprintf(fq, "%d", qu);

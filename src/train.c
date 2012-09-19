@@ -291,11 +291,11 @@ int train(int argc, char *argv[]) {
   int dn;
   long n0;
   long nw;
-  int k_or_e;
+  int k_or_e = 1;
   int iterNum;
-  float iterThres;
+  float iterThres = 0.1;
   int initProbFirst = 0;
-  const char* probFileName;
+  const char* probFileName = "";
   
   for(i = 1; i < argc; i++)
   {
@@ -440,5 +440,6 @@ int train(int argc, char *argv[]) {
   for(i = 0; i < nw; i++)
     free(id_score[i]);
   free(id_score);
+
   return 0;
 }
