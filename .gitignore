@@ -1,3 +1,5 @@
 /bin
 *.[oa]
-/.pan*
+/src/.pan*
+/src/tmp
+/src/TAGs
