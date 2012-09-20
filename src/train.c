@@ -7,7 +7,7 @@
 #include <stdarg.h>
 #include "util.h"
 
-void cnt(FILE *fp, long n, int dn, int cuNum, float p[cuNum+1][64], float **id_score, float *class_prob, float *phase_prob) {
+static void cnt(FILE *fp, long n, int dn, int dn_read, int cuNum, float p[cuNum+1][64], float **id_score, float *class_prob, float *phase_prob) {
   int i, j, i0, i1, i2, j1, id, id2cu;
   char s[1000];
   float x, id_score_norm[6*cuNum+1];
@@ -22,25 +22,25 @@ void cnt(FILE *fp, long n, int dn, int cuNum, float p[cuNum+1][64], float **id_s
     phase_prob[id] += id_score_norm[id];
   }
   
-
   for(id = 0; id < 6 * cuNum + 1; id++) {
     id2cu = ceil(id/6.);    
     class_prob[id2cu] += id_score_norm[id];
     
     j = id%3;
     fseek(fp, n+j, 0);
-    fread(s, 1, dn-3, fp);
-    for(i = 0; i < dn - 3; i++) {
+    fread(s, 1, dn_read, fp);
+    for(i = 0; i < dn_read; i++) {
       i0 = s[i++] - '0';
       i1 = s[i++] - '0';
       i2 = s[i] - '0';
       j1 = ((id - (id != 0) * (id2cu-1) * 6)/4 ? 63-i2*16-i1*4-i0 : i0*16+i1*4+i2);
+      //printf("i = %d i0 = %d i1 = %d i2 = %d j1 = %d\n", i, i0, i1, i2, j1);
       p[id2cu][j1] += id_score_norm[id];
     }
   }  
 }
 
-float calProb(FILE *fp, long n, int dn, int cuNum, float q[cuNum+1][64], int id) {
+static float calProb(FILE *fp, long n, int dn, int dn_read, int cuNum, float q[cuNum+1][64], int id) {
   long i, j;
   int i0, i1, i2, j1, id2cu;
   char s[1000];
@@ -55,7 +55,7 @@ float calProb(FILE *fp, long n, int dn, int cuNum, float q[cuNum+1][64], int id)
 
   j = id%3;
   
-  for(i=j; i<dn+j-3; i++) {
+  for(i=j; i<dn_read+j; i++) {
     i0 = s[i++] -'0';
     i1 = s[i++] - '0';
     i2 = s[i] - '0';
@@ -70,7 +70,7 @@ float calProb(FILE *fp, long n, int dn, int cuNum, float q[cuNum+1][64], int id)
 static void iter_E(FILE *fp, int n0, int dn, float **id_score, int cuNum, float q[cuNum+1][64], long nw, float *class_prob, float *phase_prob)
 {
   long i;
-  int j, k;
+  int j, k, dn_read;
   long n;
   float x, p[cuNum+1][64], p_tc[cuNum+1][64];
   
@@ -84,8 +84,9 @@ static void iter_E(FILE *fp, int n0, int dn, float **id_score, int cuNum, float 
       p[i][j] = 0;
 
   n = n0;
+  dn_read = dn - 3 + (dn % 3 != 0) * (dn % 3 == 2? 1: -1);
   for(i=0; i<nw; i++) {
-    cnt(fp, n, dn, cuNum, p, id_score, class_prob, phase_prob);
+    cnt(fp, n, dn, dn_read, cuNum, p, id_score, class_prob, phase_prob);
     n += dn;
     if((i+1)%1000000==0)
       printf("cnt window NO.%ld\n", i);
@@ -128,18 +129,19 @@ static void iter_E(FILE *fp, int n0, int dn, float **id_score, int cuNum, float 
   }
 }
 
-float iter_M(FILE* fp, long n0, int dn, float** id_score, int cuNum, float q[cuNum+1][64], long nw, float* class_prob, float* phase_prob)
+static float iter_M(FILE* fp, long n0, int dn, float** id_score, int cuNum, float q[cuNum+1][64], long nw, float* class_prob, float* phase_prob)
 {
-  int i, j, cuid, id, id2cu;
+  int i, j, cuid, id, id2cu, dn_read;
   long n;
   float max, xcu[cuNum], Q = 0.;
   
+  dn_read = dn - 3 + (dn % 3 != 0) * (dn % 3 == 2? 1: -1);  
   //calculate posterior probability
   n = n0;
   for(i=0; i<nw; i++) {
     for(j=0; j<(6*cuNum+1); j++) {
       id2cu = ceil(j/6.);
-      id_score[i][j] = class_prob[id2cu] * phase_prob[j] * calProb(fp, n, dn, cuNum, q, j);
+      id_score[i][j] = class_prob[id2cu] * phase_prob[j] * calProb(fp, n, dn, dn_read, cuNum, q, j);
     }
     //Get the max score for calculate Q
     for(j=0; j<(cuNum+1); j++)
@@ -180,7 +182,7 @@ float iter_M(FILE* fp, long n0, int dn, float** id_score, int cuNum, float q[cuN
   return Q;
 }
 
-int err(float e, int cuNum, float q[cuNum+1][64], float q1[cuNum+1][64]) {
+static int err(float e, int cuNum, float q[cuNum+1][64], float q1[cuNum+1][64]) {
   int i, j;
   float x=0.;
 
